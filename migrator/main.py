@@ -1,9 +1,14 @@
 import logging
+import time
+import os
 from typing import Optional
 
 from azure.nodepool import AzureNodeScaler
 from k8s.node import NodeManager
+from flask import Flask
+from apscheduler.schedulers.background import BackgroundScheduler
 
+app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
@@ -65,14 +70,28 @@ def migrate_workload(
         logging.error(f"Failed to scale node pool {destination_pool}")
 
 
-if __name__ == "__main__":
-    # Set your desired values for the variables
-    subscription_id = "d4e53310-d7ea-4386-8e45-a6f2f328f977"
-    resource_group = "rg-gg-demo-eus-001"
-    cluster_name = "aks-gg-demo-eus-001"
-    source_pool = "userpool02"
-    destination_pool = "userpool01"
+def schedule_migrate_workload():
+    # Get values from environment variables
+    subscription_id = os.getenv("SUBSCRIPTION_ID", "")
+    resource_group = os.getenv("RESOURCE_GROUP", "")
+    cluster_name = os.getenv("CLUSTER_NAME", "")
+    source_pool = os.getenv("SOURCE_POOL", "")
+    destination_pool = os.getenv("DESTINATION_POOL", "")
 
     migrate_workload(
         subscription_id, resource_group, cluster_name, source_pool, destination_pool
     )
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=schedule_migrate_workload, trigger="interval", seconds=60)
+scheduler.start()
+
+
+@app.route("/")
+def hello():
+    return "Hello, World!"
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)

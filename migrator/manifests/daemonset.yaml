@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: migrator
+  labels:
+    app: migrator
+spec:
+  selector:
+    matchLabels:
+      name: migrator
+  template:
+    metadata:
+      labels:
+        name: migrator
+    spec:
+      imagePullSecrets:
+        - name: acr-secret
+      containers:
+        - name: migrator
+          image: acrggdemoeus001.azurecr.io/migrator:v2
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          env:
+            - name: AZURE_TENANT_ID
+              value: "e4e34038-ea1f-4882-b6e8-ccd776459ca0"
+            - name: AZURE_CLIENT_ID
+              value: "aa9a97c6-14c6-4840-b286-92e471da1065"
+            - name: AZURE_CLIENT_SECRET
+              value: "-F-8Q~1FFqxGts.ZwGpnldHgs94wP.RvsgKZBcVn"
+            - name: SUBSCRIPTION_ID
+              value: "53b87830-110e-44f5-9d41-a91f5936d0ad"
+            - name: RESOURCE_GROUP
+              value: "rg-gg-demo-eus-001"
+            - name: CLUSTER_NAME
+              value: "aks-gg-demo-eus-001"
+            - name: SOURCE_POOL
+              value: "userpool02"
+            - name: DESTINATION_POOL
+              value: "userpool01"
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: "/kube"
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: kubeconfig
