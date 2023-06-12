@@ -1,10 +1,16 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: migrator
   labels:
     app: migrator
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       name: migrator
@@ -20,6 +26,7 @@ spec:
           image: acrggdemoeus001.azurecr.io/migrator:v1
           resources:
             limits:
+              cpu: 100m
               memory: 200Mi
             requests:
               cpu: 100m

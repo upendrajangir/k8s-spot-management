@@ -18,6 +18,7 @@ def migrate_workload(
     cluster_name: str,
     source_pool: str,
     destination_pool: str,
+    grace_termination_period: int = 30,
 ) -> None:
     """
     Migrates workload from the source node pool to the destination node pool.
@@ -28,6 +29,7 @@ def migrate_workload(
         cluster_name (str): Name of the AKS cluster.
         source_pool (str): Name of the source node pool.
         destination_pool (str): Name of the destination node pool.
+        grace_termination_period (int): Grace period in seconds for pod termination.
 
     Returns:
         None
@@ -42,30 +44,20 @@ def migrate_workload(
     if scaler.increment_node_pool(resource_group, cluster_name, destination_pool):
         logging.info(f"Successfully scaled node pool {destination_pool}")
 
-        # Get list of pods in source pool (excluding kube-system namespace)
-        pod_list = node_manager.list_pods_by_nodepool(
-            source_pool, exclude_namespaces=["kube-system"]
-        )
-
-        if pod_list and pod_list.items:
-            logging.info(f"Found {len(pod_list.items)} pods in node pool {source_pool}")
-
-            # Evict pods from source pool and schedule them on the destination pool
-            for pod in pod_list.items:
-                if node_manager.evict_pod_from_nodepool(
-                    pod.metadata.name, pod.metadata.namespace, source_pool
-                ):
-                    logging.info(
-                        f"Evicted pod {pod.metadata.name} to node pool {source_pool}"
-                    )
-                else:
-                    logging.error(
-                        f"Failed to evict pod {pod.metadata.name} to node pool {source_pool}"
-                    )
+        # drain nodes in source pool
+        nodes = node_manager.list_nodes()
+        if nodes is not None:
+            for node in nodes.items:
+                # Here it's assumed that node name and node pool name are same
+                if node.metadata.name == source_pool:
+                    if node_manager.drain_node(
+                        node.metadata.name, grace_termination_period
+                    ):
+                        logging.info(f"Successfully drained node {node.metadata.name}")
+                    else:
+                        logging.error(f"Failed to drain node {node.metadata.name}")
         else:
-            logging.info(
-                f"No pods found in node pool {source_pool} (excluding kube-system namespace)"
-            )
+            logging.error(f"Failed to get nodes in the cluster")
     else:
         logging.error(f"Failed to scale node pool {destination_pool}")
 
