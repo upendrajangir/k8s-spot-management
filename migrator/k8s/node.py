@@ -22,7 +22,7 @@ class NodeManager:
             Optional[client.V1DeploymentList]: List of nodes in the cluster.
         """
         try:
-            return self.api_instance.list_nodes(watch=False)
+            return self.api_instance.list_node(watch=False).items
         except client.ApiException as e:
             logger.error(f"Error listing nodes: {e}")
             return None
@@ -138,6 +138,17 @@ class NodeManager:
                 self.api_instance.create_namespaced_pod_eviction(
                     name=pod_name, namespace=namespace, body=eviction, pretty="true"
                 )
+
+            # Reset the taints on the node
+            body = {"spec": {"taints": []}}
+            self.api_instance.patch_node(name, body)
+
+            # Make the node schedulable again
+            body = {"spec": {"unschedulable": False}}
+
+            # Update the node status to schedulable
+            self.api_instance.patch_node(name, body)
+
             return True
         except client.ApiException as e:
             logger.error(f"Error draining node: {e}")

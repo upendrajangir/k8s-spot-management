@@ -45,19 +45,11 @@ def migrate_workload(
         logging.info(f"Successfully scaled node pool {destination_pool}")
 
         # drain nodes in source pool
-        nodes = node_manager.list_nodes()
-        if nodes is not None:
-            for node in nodes.items:
-                # Here it's assumed that node name and node pool name are same
-                if node.metadata.name == source_pool:
-                    if node_manager.drain_node(
-                        node.metadata.name, grace_termination_period
-                    ):
-                        logging.info(f"Successfully drained node {node.metadata.name}")
-                    else:
-                        logging.error(f"Failed to drain node {node.metadata.name}")
-        else:
-            logging.error(f"Failed to get nodes in the cluster")
+        try:
+            node_manager.drain_node(source_pool, 30)
+            logging.info(f"Successfully drained node {source_pool}")
+        except Exception as e:
+            logging.error(f"Failed to drain node {e}")
     else:
         logging.error(f"Failed to scale node pool {destination_pool}")
 
