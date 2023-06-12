@@ -1,5 +1,8 @@
 # Use a base Python image
-FROM python:3.9
+FROM python:3.9-slim
+
+# Configure the KUBECONFIG environment variable
+ENV KUBECONFIG=/kube/config
 
 # Set the working directory in the container
 WORKDIR /app

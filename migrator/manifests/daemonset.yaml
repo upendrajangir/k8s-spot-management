@@ -17,7 +17,7 @@ spec:
         - name: acr-secret
       containers:
         - name: migrator
-          image: acrggdemoeus001.azurecr.io/migrator:v2
+          image: acrggdemoeus001.azurecr.io/migrator:v1
           resources:
             limits:
               memory: 200Mi
